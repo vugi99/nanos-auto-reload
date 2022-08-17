@@ -53,12 +53,14 @@ end
 
 function GetDirectories(directory)
     local directories = io.popen("cd " .. directory .. " && dir /b /a:d")
-    return split_lines(directories:read("*a"))
+    local splited_dirs = split_lines(directories:read("*a"))
+    return splited_dirs
 end
 
 function GetFiles(directory)
     local files = io.popen("cd " .. directory .. " && dir /b /a:-d")
-    return split_lines(files:read("*a"))
+    local splited_files = split_lines(files:read("*a"))
+    return splited_files
 end
 
 function UpdateFilesInDirectory(package_name, directory)
@@ -70,23 +72,15 @@ function UpdateFilesInDirectory(package_name, directory)
         --print(v)
         local extension = GetFileExtension(v)
         if IsScriptFileExtension(extension) then
-            local file = io.open(directory .. "/" .. v, "r")
-            if file then
-                local file_content = file:read("*a")
-                local stored_file_content = packages_script_files[package_name][directory .. "/" .. v]
-                if stored_file_content then
-                    if file_content ~= stored_file_content then
-                        packages_script_files[package_name][directory .. "/" .. v] = file_content
-                        updated_file = true
-                    end
-                else
-                    packages_script_files[package_name][directory .. "/" .. v] = file_content
+            local file_last_modified = File.Time(directory .. "/" .. v)
+            if file_last_modified then
+                local stored_file_last_modified = packages_script_files[package_name][directory .. "/" .. v]
+                if (not stored_file_last_modified or file_last_modified ~= stored_file_last_modified) then
+                    packages_script_files[package_name][directory .. "/" .. v] = file_last_modified
                     updated_file = true
                 end
-
-                io.close(file)
             else
-                print("Can't open " .. v)
+                print("Can't read last modified time for " .. v)
             end
         end
     end
